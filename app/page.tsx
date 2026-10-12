@@ -1,103 +1,177 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, BadgeCheck, FlaskConical, ShieldCheck, Wallet } from "lucide-react";
+import { categories } from "@/lib/constants";
+import { countLivePrompts, getFavoriteIds, getListings, getTopCreators } from "@/lib/queries";
+import { PromptGrid } from "@/components/prompt-card";
+import { buttonClass, SectionHeading } from "@/components/ui";
+import { CategoryIcon } from "@/components/category-icon";
+import { Avatar } from "@/components/avatar";
+import { Rating } from "@/components/rating";
+import { formatCompact } from "@/lib/utils";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [featured, trending, newest, creators, total, favoriteIds] = await Promise.all([
+    getListings({ featured: true, limit: 4 }),
+    getListings({ sort: "trending", limit: 8 }),
+    getListings({ sort: "newest", limit: 4 }),
+    getTopCreators(5),
+    countLivePrompts(),
+    getFavoriteIds(),
+  ]);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <>
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b border-border">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.25),transparent_60%)]" />
+        <div className="relative mx-auto max-w-7xl px-4 py-20 text-center sm:px-6 sm:py-28">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-success" /> {total} reviewed prompts
+          </span>
+          <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
+            Prompts that{" "}
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              actually work
+            </span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-xl text-lg text-muted">
+            Buy expert-crafted prompts for ChatGPT, Claude, Midjourney and more. Try them before you buy,
+            or sell your own and get paid.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link href="/browse" className={buttonClass("primary", "lg")}>
+              Explore prompts <ArrowRight size={18} />
+            </Link>
+            <Link href="/sell/new" className={buttonClass("secondary", "lg")}>
+              Start selling
+            </Link>
+          </div>
+          <div className="mt-10 flex flex-wrap justify-center gap-2 text-sm">
+            {["ChatGPT", "Claude", "Midjourney", "Stable Diffusion", "Sora"].map((m) => (
+              <Link
+                key={m}
+                href={`/browse?model=${encodeURIComponent(m)}`}
+                className="rounded-full border border-border px-3 py-1 text-muted hover:border-primary/60 hover:text-foreground"
+              >
+                {m}
+              </Link>
+            ))}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </section>
+
+      <div className="mx-auto max-w-7xl space-y-20 px-4 pt-16 sm:px-6">
+        {/* Categories */}
+        <section>
+          <SectionHeading title="Browse by category" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {categories.map((c) => (
+              <Link
+                key={c.slug}
+                href={`/browse?category=${c.slug}`}
+                className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4 transition hover:border-primary/50"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <CategoryIcon name={c.icon} size={20} />
+                </span>
+                <span className="font-medium">{c.name}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Featured */}
+        <section>
+          <SectionHeading
+            title="Featured prompts"
+            subtitle="Hand-picked by our team this week"
+            action={
+              <Link href="/browse" className="text-sm text-primary hover:underline">
+                View all
+              </Link>
+            }
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          <PromptGrid prompts={featured} favoriteIds={favoriteIds} />
+        </section>
+
+        {/* How it works */}
+        <section className="grid gap-5 md:grid-cols-3">
+          {[
+            {
+              icon: FlaskConical,
+              title: "Try before you buy",
+              text: "Run any prompt on your own inputs and see real output. The prompt itself stays hidden until you buy.",
+            },
+            {
+              icon: ShieldCheck,
+              title: "Reviewed for quality",
+              text: "Every listing is reviewed and needs real example outputs. Not happy? Get a refund within 7 days.",
+            },
+            {
+              icon: Wallet,
+              title: "Earn as a creator",
+              text: "List prompts in minutes and keep 80% of every sale, paid out straight to your bank account.",
+            },
+          ].map((f) => (
+            <div key={f.title} className="rounded-2xl border border-border bg-surface p-6">
+              <f.icon className="text-accent" size={24} />
+              <h3 className="mt-4 font-semibold">{f.title}</h3>
+              <p className="mt-2 text-sm text-muted">{f.text}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* Trending */}
+        <section>
+          <SectionHeading title="Trending now" subtitle="Most viewed this week" />
+          <PromptGrid prompts={trending} favoriteIds={favoriteIds} />
+        </section>
+
+        {/* Top creators */}
+        <section>
+          <SectionHeading title="Top creators" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {creators.map((c) => (
+              <Link
+                key={c.handle}
+                href={`/creator/${c.handle}`}
+                className="flex flex-col items-center rounded-2xl border border-border bg-surface p-5 text-center transition hover:border-primary/50"
+              >
+                <Avatar name={c.name} hue={c.avatarHue} size={56} />
+                <span className="mt-3 flex items-center gap-1 font-medium">
+                  {c.name}
+                  {c.verified && <BadgeCheck size={16} className="text-accent" />}
+                </span>
+                <span className="text-sm text-muted">@{c.handle}</span>
+                <span className="mt-3 flex items-center gap-3 text-sm">
+                  <Rating value={c.rating} count={c.rating ? undefined : 0} />
+                  <span className="text-muted">{formatCompact(c.sales)} sales</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* New */}
+        <section>
+          <SectionHeading title="Just added" />
+          <PromptGrid prompts={newest} favoriteIds={favoriteIds} />
+        </section>
+
+        {/* CTA */}
+        <section className="relative overflow-hidden rounded-3xl border border-border bg-surface p-10 text-center sm:p-16">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(34,211,238,0.18),transparent_60%)]" />
+          <h2 className="relative text-3xl font-bold tracking-tight">Turn your prompts into income</h2>
+          <p className="relative mx-auto mt-3 max-w-lg text-muted">
+            Join thousands of creators selling on GoPrompts. Free to list, 80% revenue share.
+          </p>
+          <Link href="/sell/new" className={buttonClass("primary", "lg", "relative mt-6")}>
+            Create your first listing <ArrowRight size={18} />
+          </Link>
+        </section>
+      </div>
+    </>
   );
 }

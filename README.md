@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GoPrompts
 
-## Getting Started
+A marketplace for AI prompts: buy, try and sell. Built with Next.js 15 (App Router), Tailwind v4 and Supabase.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Install dependencies: `npm install`
+2. Copy `.env.example` to `.env.local` and fill in your Supabase URL and publishable key.
+3. In the Supabase dashboard, open **SQL Editor** and run, in order:
+   1. `supabase/migrations/20261011000000_init.sql` (schema, RLS, functions)
+   2. `supabase/seed.sql` (optional demo creators, prompts and reviews)
+4. In **Authentication → URL Configuration**, set the Site URL to `http://localhost:3100` and add
+   `http://localhost:3100/auth/callback` to the redirect URLs.
+5. `npm run dev -- -p 3100`
+
+### Make yourself an admin
+
+Sign up in the app, then run in the SQL editor:
+
+```sql
+update public.profiles set role = 'admin' where handle = 'your_handle';
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Optional: Google login
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Enable the Google provider under **Authentication → Providers** with a Google OAuth client.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How it fits together
 
-## Learn More
+| Piece | Where |
+|---|---|
+| Schema, RLS policies, RPCs | `supabase/migrations/` |
+| Supabase clients (cookie sessions) | `lib/supabase/` |
+| Session refresh + route guards | `middleware.ts` |
+| Read queries | `lib/queries.ts` |
+| Mutations (server actions) | `app/actions.ts` |
 
-To learn more about Next.js, take a look at the following resources:
+**Prompt protection:** listing data lives in `prompts` (public), while the template lives in
+`prompt_secrets`. RLS only returns a template to its creator, admins, buyers and (for free
+prompts) signed-in users. Locked pages never send the template to the browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Purchases** can only be written by security-definer functions. `acquire_prompt()` handles free
+prompts, and paid prompts while `app_settings.demo_payments` is `true`. Turn that off when Stripe is wired in:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```sql
+update public.app_settings set demo_payments = false;
+```
 
-## Deploy on Vercel
+## Not done yet
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Stripe Checkout + Connect payouts (the checkout is a demo)
+- LLM calls for "Try it free": currently returns the creator's first example output.
+  Needs a server-only Supabase secret key (to read the hidden template) and an LLM API key.
+- Editing and deleting listings, profile settings, image uploads
